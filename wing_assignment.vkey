@@ -1,0 +1,13 @@
+# VSPGEOM v3 Tag Key File
+wing_assignment.vspgeom
+2
+
+# part#,geom#,surf#,gname,gid,thick,plate,copy#,geomcopy#
+1,0,0,MeshGeom_S,HJCIGGCVSM,1,0,1,1
+2,0,1,MeshGeom_S,HJCIGGCVSM,1,0,2,2
+
+2
+
+# tag#,part#,ssname1,ssname2,...,ssid1,ssid2,...
+1,1
+2,2
