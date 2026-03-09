@@ -2,11 +2,11 @@ from pathlib import Path
 
 from matplotlib import pyplot as plt
 
-from utils.vsp_manager import VspManager, AnalysisSettings
+from assignment1.utils.vsp_manager import VspManager, AnalysisSettings
 
 to_get = ['Alpha', 'CLtot', 'CDtot', 'CLwtot', 'CDwtot']
 
-vsp_file = Path('./wing_assignment.vsp3')
+vsp_file = Path('wing_assignment.vsp3')
 aero_path = Path('~/Downloads/OpenVSP-3.48.1-win64').expanduser()
 manager = VspManager(aero_path, vsp_file)
 

@@ -7,7 +7,7 @@ from fluids.atmosphere import ATMOSPHERE_1976
 vsp.InitGUI()
 vsp.StartGUI()
 
-vsp_file = Path('./wing_assignment.vsp3')
+vsp_file = Path('wing_assignment.vsp3')
 aero_path = Path('~/Downloads/OpenVSP-3.46.0-win64').expanduser()
 
 vsp.VSPCheckSetup()  # Verify everything is working as expected
