@@ -1,12 +1,14 @@
+import os
 import random
 import string
 from collections import namedtuple
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from openvsp import vsp
 
-AnalysisSettings = namedtuple('AnalysisSettings', ['geom', 'analysis', 'name', 'start', 'end', 'num'])
+AnalysisSettings = namedtuple('AnalysisSettings', ['geom', 'analysis', 'name', 'start', 'end', 'num'], defaults=[None, None, None])
 
 class VspManager:
 
@@ -65,120 +67,111 @@ class VspManager:
         self.path = vsp_path
 
     def setup_analysis(self) -> str:
-        print("SETUP 1")
         vsp.DeleteAllResults()
         analysis_name = "VSPAEROComputeGeometry"
         vsp.SetAnalysisInputDefaults(analysis_name)
-        vsp.PrintAnalysisInputs(analysis_name)
+        #vsp.PrintAnalysisInputs(analysis_name)
         vsp.ExecAnalysis(analysis_name)
-        print("SETUP 2")
         analysis_name = "VSPAEROSweep"
         vsp.SetAnalysisInputDefaults(analysis_name)
-        vsp.SetDoubleAnalysisInput(analysis_name, "AlphaEnd", (float(15),), 0)
         vsp.PrintAnalysisInputs(analysis_name)
         #vsp.ComputeCFDMesh(vsp.SET_ALL, vsp.SET_NONE, vsp.CFD_VSPGEOM_TYPE)
         vsp.Update()
         return analysis_name
 
     def perform_analysis(self, analysis: str, data_to_get: list[str]) -> dict[str, list[float | int | str]]:
+        self.setup_analysis()
         vsp.ExecAnalysis(analysis)
         return {
             data: self.fetch_last_results(analysis, data) for data in data_to_get
         }
 
     def set_simulation_setting(self, setting: AnalysisSettings, value: float | int | str):
-        all_parms = [vsp.GetParmName(x) for x in vsp.GetGeomParmIDs(vsp.FindGeomsWithName(setting.geom)[0])]
-        all_inputs = vsp.GetAnalysisInputNames(setting.analysis)
-
-        # Setting parms
-        if setting.name in all_parms:
-            print("Setting Parm")
-            if setting.name == 'SectTess_U':
-                xsec_surf = vsp.GetXSecSurf(vsp.FindGeomsWithName(setting.geom)[0], 1)
-                # IDK why there are two sections even though there is only one in the GUI
-                # The first one is default?
-                xsec = vsp.GetXSec(xsec_surf, 1)
-                sec_tess_u = vsp.GetXSecParm(xsec, 'SectTess_U')
-                vsp.SetParmValUpdate(sec_tess_u, value)
-            else:
-                res_parm: str
-                for parm_id in vsp.GetGeomParmIDs(vsp.FindGeomsWithName(setting.geom)[0]):
-                    if vsp.GetParmName(parm_id) == setting.name:
-                        vsp.SetParmValUpdate(parm_id, value)
-                        break
-
-            vsp.Update()
-
-            vsp.WriteVSPFile(str(self.file))
-            vsp.ClearVSPModel()
-            vsp.VSPCheckSetup()  # Verify everything is working as expected
-            vsp.VSPRenew()  # Clear all global state
-            vsp.ClearVSPModel()
-            vsp.Update()
-            vsp.SetVSPAEROPath(str(self.path))
-            # read vsp3 input file
-            vsp.ReadVSPFile(str(self.file))
-            self.setup_analysis()
-            vsp.ExportFile(str(self.file.parent / (self.file.stem + ".vspgeom")), vsp.SET_ALL, vsp.EXPORT_VSPGEOM)
-            vsp.Update()
-
-            self.setup_analysis()
-        # Setting inputs
-        elif setting.name in all_inputs:
-            print("Setting Input")
-            _type = self._type_matcher[vsp.GetAnalysisInputType(setting.analysis, setting.name)]
-            fun = self._input_setter_matcher[_type]
-            fun(setting.analysis, setting.name, (_type(value), ), 0)
-        vsp.UpdateGeom(setting.geom)
-        vsp.Update()
+        self._get_set_simulation_setting(setting, value)
 
     def get_simulation_setting(self, setting: AnalysisSettings) -> float | int | str:
+        return self._get_set_simulation_setting(setting, None)
+
+    def _get_set_simulation_setting(self, setting: AnalysisSettings, value: Optional[float | int | str]) -> Optional[float | int | str]:
         all_parms = [vsp.GetParmName(x) for x in vsp.GetGeomParmIDs(vsp.FindGeomsWithName(setting.geom)[0])]
         all_inputs = vsp.GetAnalysisInputNames(setting.analysis)
         res = None
-        # Setting parms
         if setting.name in all_parms:
-            print("Getting Parm")
-            if setting.name == 'SectTess_U':
+            # Setting the params (when value is not none) is a bit tricky
+            # First we set it with SetParmValUpdate
+            if setting.name in ['SectTess_U', 'ProjectedSpan', 'Span']:
                 xsec_surf = vsp.GetXSecSurf(vsp.FindGeomsWithName(setting.geom)[0], 1)
                 # IDK why there are two sections even though there is only one in the GUI
                 # The first one is default?
-                # Also, all IDs are the same if I use 0 up there and 1 here, but the result is different
-                # What the f?
                 xsec = vsp.GetXSec(xsec_surf, 1)
-                sec_tess_u = vsp.GetXSecParm(xsec, 'SectTess_U')
-                res = vsp.GetParmVal(sec_tess_u)
+                sec_tess_u = vsp.GetXSecParm(xsec, setting.name)
+
+                if value is not None:
+                    vsp.SetParmValUpdate(sec_tess_u, value)
+                else:
+                    res = vsp.GetParmVal(sec_tess_u)
             else:
                 res_parm: str
                 for parm_id in vsp.GetGeomParmIDs(vsp.FindGeomsWithName(setting.geom)[0]):
                     if vsp.GetParmName(parm_id) == setting.name:
-                        res = vsp.GetParmVal(parm_id)
+                        if value is not None:
+                            vsp.SetParmValUpdate(parm_id, value)
+                        else:
+                            res = vsp.GetParmVal(parm_id)
                         break
 
-        # Setting inputs
+            if value is not None:
+                vsp.Update()
+                # Then, clear all old meshes. It creates more after a simulation for some reason
+                # and then the ExportFile will happily export this outdated mesh. Don't ask why, I have no clue
+                geom: str
+                for geom in vsp.FindGeoms():
+                    if 'mesh' in vsp.GetGeomName(geom).lower():
+                        vsp.DeleteGeom(geom)
+
+                # Now export as a vspgeom file for VSPAERO
+                # After this you are good to go
+                vsp.ExportFile(str(self.file.parent / (self.file.stem + ".vspgeom")), vsp.SET_ALL, vsp.EXPORT_VSPGEOM)
+
         elif setting.name in all_inputs:
-            print("Getting Input")
-            fun = self._input_getter_matcher[
-                self._type_matcher[vsp.GetAnalysisInputType(setting.analysis, setting.name)]]
-            res = fun(setting.analysis, setting.name)
+            if value is None:
+                fun = self._input_getter_matcher[
+                    self._type_matcher[vsp.GetAnalysisInputType(setting.analysis, setting.name)]]
+                res = fun(setting.analysis, setting.name)
+            else:
+                _type = self._type_matcher[vsp.GetAnalysisInputType(setting.analysis, setting.name)]
+                fun = self._input_setter_matcher[_type]
+                fun(setting.analysis, setting.name, (_type(value),), 0)
         return res
 
     def sweep_analysis(self, settings: AnalysisSettings, data_to_get: list[str]) -> dict[str, dict[str, list[float | int | str]]]:
+        return self.parallel_sweep_analysis([settings], data_to_get)
+
+    def parallel_sweep_analysis(self, settings: list[AnalysisSettings], data_to_get: list[str]) -> dict[
+        str, dict[str, list[float | int | str]]]:
         self.setup_analysis()
 
-        values = {}
+        results = {}
 
-        default_val = self.get_simulation_setting(settings)
+        if not all([setting.num == settings[0].num for setting in settings]):
+            raise ValueError("Number of settings does not match")
 
-        for value in np.linspace(settings.start, settings.end, settings.num):
-            self.setup_analysis()
-            self.set_simulation_setting(settings, value)
-            res = self.perform_analysis(settings.analysis, data_to_get)
-            values[f"{settings.name}_{value}"] = res
+        if not all([setting.analysis == settings[0].analysis for setting in settings]):
+            raise ValueError("Analyses do not match")
 
-        self.set_simulation_setting(settings, default_val)
+        default_vals = [[setting, self.get_simulation_setting(setting)] for setting in settings]
+
+        for values in zip(*[np.linspace(setting.start, setting.end, setting.num) for setting in settings]):
+            for value, setting in zip(values, settings):
+                self.setup_analysis()
+                self.set_simulation_setting(setting, value)
+            res = self.perform_analysis(settings[0].analysis, data_to_get)
+            results[f"{' '.join([setting.name for setting in settings])}_{' '.join([str(value) for value in values])}"] = res
+
+        for setting, default_val in default_vals:
+            self.set_simulation_setting(setting, default_val)
         vsp.DeleteAllResults()
-        return values
+        return results
 
     def grid_analysis(self, settings: tuple[AnalysisSettings, AnalysisSettings]) -> dict[str, list[list[float | int | str]]]:
         raise NotImplementedError("Can not perform grid analysis yet")
