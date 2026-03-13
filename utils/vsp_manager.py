@@ -47,6 +47,9 @@ class VspManager:
     file: Path
     path: Path
 
+    thin_value = vsp.SET_ALL
+    thick_value = vsp.SET_NONE
+
     def get_result(self, _id, name) -> float | int | str:
         res_type = vsp.GetResultsType(_id, name)
         fun = self._result_getter_matcher[self._type_matcher[res_type]]
@@ -65,6 +68,9 @@ class VspManager:
         vsp.Update()
         self.file = vsp_file
         self.path = vsp_path
+        self.setup_analysis()
+
+
 
     def setup_analysis(self) -> str:
         vsp.DeleteAllResults()
@@ -80,7 +86,8 @@ class VspManager:
         return analysis_name
 
     def perform_analysis(self, analysis: str, data_to_get: list[str]) -> dict[str, list[float | int | str]]:
-        self.setup_analysis()
+        vsp.DeleteAllResults()
+
         vsp.ExecAnalysis(analysis)
         return {
             data: self.fetch_last_results(analysis, data) for data in data_to_get
@@ -91,6 +98,18 @@ class VspManager:
 
     def get_simulation_setting(self, setting: AnalysisSettings) -> float | int | str:
         return self._get_set_simulation_setting(setting, None)
+
+    def write_out_mesh(self):
+        geom: str
+        for geom in vsp.FindGeoms():
+            if 'mesh' in vsp.GetGeomName(geom).lower():
+                vsp.DeleteGeom(geom)
+
+        # Now export as a vspgeom file for VSPAERO
+        # After this you are good to go
+        vsp.ExportFile(
+            str(self.file.parent / (self.file.stem + ".vspgeom")),
+            self.thick_value, vsp.EXPORT_VSPGEOM, 1, self.thin_value)
 
     def _get_set_simulation_setting(self, setting: AnalysisSettings, value: Optional[float | int | str]) -> Optional[float | int | str]:
         all_parms = [vsp.GetParmName(x) for x in vsp.GetGeomParmIDs(vsp.FindGeomsWithName(setting.geom)[0])]
@@ -124,14 +143,7 @@ class VspManager:
                 vsp.Update()
                 # Then, clear all old meshes. It creates more after a simulation for some reason
                 # and then the ExportFile will happily export this outdated mesh. Don't ask why, I have no clue
-                geom: str
-                for geom in vsp.FindGeoms():
-                    if 'mesh' in vsp.GetGeomName(geom).lower():
-                        vsp.DeleteGeom(geom)
-
-                # Now export as a vspgeom file for VSPAERO
-                # After this you are good to go
-                vsp.ExportFile(str(self.file.parent / (self.file.stem + ".vspgeom")), vsp.SET_ALL, vsp.EXPORT_VSPGEOM)
+                self.write_out_mesh()
 
         elif setting.name in all_inputs:
             if value is None:
@@ -142,6 +154,17 @@ class VspManager:
                 _type = self._type_matcher[vsp.GetAnalysisInputType(setting.analysis, setting.name)]
                 fun = self._input_setter_matcher[_type]
                 fun(setting.analysis, setting.name, (_type(value),), 0)
+
+                if setting.name == "ThinGeomSet":
+                    self.thin_value = value
+                    self.write_out_mesh()
+
+                if setting.name == "GeomSet":
+                    self.thick_value = value
+                    self.write_out_mesh()
+
+                vsp.Update()
+
         return res
 
     def sweep_analysis(self, settings: AnalysisSettings, data_to_get: list[str]) -> dict[str, dict[str, list[float | int | str]]]:
@@ -149,7 +172,6 @@ class VspManager:
 
     def parallel_sweep_analysis(self, settings: list[AnalysisSettings], data_to_get: list[str]) -> dict[
         str, dict[str, list[float | int | str]]]:
-        self.setup_analysis()
 
         results = {}
 
@@ -163,10 +185,9 @@ class VspManager:
 
         for values in zip(*[np.linspace(setting.start, setting.end, setting.num) for setting in settings]):
             for value, setting in zip(values, settings):
-                self.setup_analysis()
                 self.set_simulation_setting(setting, value)
             res = self.perform_analysis(settings[0].analysis, data_to_get)
-            results[f"{' '.join([setting.name for setting in settings])}_{' '.join([str(value) for value in values])}"] = res
+            results[f"{' '.join([setting.name for setting in settings])}_{' '.join([f"{value:.2f}" for value in values])}"] = res
 
         for setting, default_val in default_vals:
             self.set_simulation_setting(setting, default_val)
