@@ -11,3 +11,8 @@ To replicate the results of Assignment 1, follow these steps:
 * From the OpenVSP directory, navigate to `python` folder and execute `./setup.ps`
 * This will install all the necessary dependencies, then, with `vsppytools` env activated, go to the `assignment_1` folder and run `pip install -r requirements.txt` to install the required Python packages
 * Finally, run the jupyter notebook `assignment_1.ipynb` through `jupyter notebook` command in the terminal from the assignment folder.
+
+
+### Assignement 2: Aircraft RFP
+Install fluids: `pip install fluids`
+Run the notebook `assignment_2.ipynb` command in the terminal from the assignment2 folder.
