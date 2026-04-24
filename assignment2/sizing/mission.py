@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from enum import auto, Enum
 from typing import Optional
 
-from config import AircraftConfig, MissionTypes, AircraftTypes, EngineType
-from sizing.utils import g
+from .config import AircraftConfig, MissionTypes, AircraftTypes, EngineType
+from .utils import g
 
 # Segment Single Biz Regional Trans- Mil. Fighters Mil. AmphiEngine Jet Turbo- port Trainer Patrol bious
 # prop Jet

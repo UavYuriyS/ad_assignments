@@ -95,8 +95,12 @@ class AircraftConfig:
     aerodynamics: Aerodynamics
     engine: Engine
 
-    souls_onboard: int
-    weight_per_person: float
+    pax_onboard: int
+    weight_per_pax: float
+
+    crew_onboard: int
+    weight_per_crew: float
+
     W0: float
     takeoff_field_length: float
     landing_field_length: float

@@ -46,8 +46,8 @@ config = AircraftConfig(
         thrust=10000
     ),
     W0= 230000,
-    souls_onboard=CREW_NUMBER+PAX_NUMBER,
-    weight_per_person=WEIGHT_PER_PERSON,
+    pax_onboard=CREW_NUMBER + PAX_NUMBER,
+    weight_per_pax=WEIGHT_PER_PERSON,
     cruise_mach=CRUISE_MACH,
     cruise_altitude=CRUISE_ALTITUDE,
     takeoff_field_length=TAKEOFF_FIELD_LENGTH,
@@ -75,7 +75,8 @@ class Solver:
         mission_weight_fraction = self.mission_weight_fraction.total_fuel_weight_fraction()
         empty_weight_fraction = self.empty_weight_fraction.empty_weight_fraction()
 
-        w_fixed = self.config.souls_onboard * self.config.weight_per_person
+        w_fixed = self.config.pax_onboard * self.config.weight_per_pax
+        w_fixed += self.config.crew_onboard * self.config.weight_per_crew
 
         w_0 = w_fixed / (1-(mission_weight_fraction + empty_weight_fraction))
         return w_0
