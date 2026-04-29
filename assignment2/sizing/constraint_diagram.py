@@ -74,11 +74,19 @@ class ConstantWingLoadingConstraint(Constraint):
 class ClimbConstraint(Constraint):
     climb_grad: float
     engine_count: int = 2
-    inop_count: int = 1
+    inop_count: int = 0
     def get_thrust_to_weight(self, wing_loading: ndarray) -> ndarray:
+        if self.inop_count > 0:
+            CD_0 = self._config.aerodynamics.CD0
+            K = self._config.aerodynamics.K
+            CL_max = self._config.aerodynamics.CL_max_to
+            alpha = self._get_engine_alpha()
+            T_W = self.mass_fraction / alpha * (1 / CL_max * (CD_0 + K * CL_max**2) + self.climb_grad)
+            return np.full_like(wing_loading, T_W) * 2
+
         return (self._thrust_to_weight_master(
-            wing_loading, load_factor=1, climb_grad=self.climb_grad, accel=0)
-                / ((self.engine_count - self.inop_count) / self.engine_count))
+            wing_loading, load_factor=1, climb_grad=self.climb_grad, accel=0))
+
 
 @dataclass
 class CruiseConstraint(Constraint):
