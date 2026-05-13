@@ -24,16 +24,37 @@ class ConstraintPlotter:
         for constraint in constraints:
             constraint._config = config
 
-    def draw_diagram(self, ax: Axes) -> None:
+    def draw_tw_wl_diagram(self, ax: Axes, **kwargs) -> None:
 
         wing_loadings = np.linspace(*self.wing_load_range, self._n_points)
         for constraint in self.constraints:
-            constraint.draw(ax, wing_loadings)
+            constraint.draw_tw_wl(ax, wing_loadings, **kwargs)
+
+    def draw_t_s_diagram(self, ax: Axes, **kwargs) -> None:
+
+        wing_loadings = np.linspace(*self.wing_load_range, self._n_points)
+        for constraint in self.constraints:
+            constraint.draw_t_s(ax, wing_loadings, **kwargs)
 
 @dataclass
-class Constraint:
+class BaseConstraint:
     _config: AircraftConfig = field(init=False)
     name: str
+
+    def get_thrust_to_weight(self, wing_loading: ndarray) -> ndarray:
+        pass
+
+    def draw_tw_wl(self, ax: Axes, wing_loading: ndarray, **kwargs):
+        ax.plot(wing_loading, self.get_thrust_to_weight(wing_loading), label=self.name, **kwargs)
+
+    def draw_t_s(self, ax: Axes, wing_loading: ndarray, **kwargs):
+        t_w = self.get_thrust_to_weight(wing_loading)
+        t = t_w * self._config.W0
+        s = 1 / wing_loading * self._config.W0 * g
+        ax.plot(s, t, label=self.name, **kwargs)
+
+@dataclass
+class Constraint(BaseConstraint):
     altitude: float
     airspeed: float
     mass_fraction: float
@@ -56,19 +77,18 @@ class Constraint:
                 climb_grad + 1/g * accel
         )
 
-    def get_thrust_to_weight(self, wing_loading: ndarray) -> ndarray:
-        pass
-
-    def draw(self, ax: Axes, wing_loading: ndarray):
-        ax.plot(wing_loading, self.get_thrust_to_weight(wing_loading), label=self.name)
-
-class ConstantWingLoadingConstraint(Constraint):
+class ConstantWingLoadingConstraint(BaseConstraint):
     def get_thrust_to_weight(self, *args, **kwargs) -> float:
         pass
 
-    def draw(self, ax: Axes, wing_loading: ndarray):
+    def draw_tw_wl(self, ax: Axes, wing_loading: ndarray, **kwargs):
         color = next(ax._get_lines.prop_cycler)['color']
-        ax.axvline(self.get_thrust_to_weight(wing_loading), label=self.name, color=color)
+        ax.axvline(self.get_thrust_to_weight(wing_loading), label=self.name, color=color, **kwargs)
+
+    def draw_t_s(self, ax: Axes, wing_loading: ndarray, **kwargs):
+        color = next(ax._get_lines.prop_cycler)['color']
+        s = 1 / self.get_thrust_to_weight(wing_loading) * self._config.W0 * g
+        ax.axvline(s, label=self.name, color=color, **kwargs)
 
 @dataclass
 class ClimbConstraint(Constraint):
@@ -123,7 +143,7 @@ class BalancedTakeoffConstraint(Constraint):
         return 37.5 / SLUG_TO_N * wing_loading / (sigma * CL_max_to * to_length)
 
 @dataclass
-class LandingConstraint(ConstantWingLoadingConstraint):
+class LandingConstraint(ConstantWingLoadingConstraint, Constraint):
     mu: float
     h_obs: float = 15.24
     f_MS: float = 0.66
@@ -138,7 +158,14 @@ class LandingConstraint(ConstantWingLoadingConstraint):
             rho * g * self.mu * CL_max_l / (self.f_V ** 2 * self.mass_fraction)
 
 @dataclass
-class StallConstraint(ConstantWingLoadingConstraint):
+class StallConstraint(ConstantWingLoadingConstraint, Constraint):
     def get_thrust_to_weight(self, wing_loading: ndarray) -> float:
         rho = fluids.ATMOSPHERE_1976(self.altitude).rho
         return 0.5 * rho / self.mass_fraction * self._config.stall_speed**2 * self._config.aerodynamics.CL_max_l
+
+@dataclass
+class WingSpanConstraint(ConstantWingLoadingConstraint):
+    wingspan: float
+
+    def get_thrust_to_weight(self, wing_loading: ndarray) -> ndarray:
+        return self._config.W0 * g * self._config.aerodynamics.AR / self.wingspan ** 2

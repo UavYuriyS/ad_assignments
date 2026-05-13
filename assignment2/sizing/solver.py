@@ -145,7 +145,7 @@ import matplotlib.pyplot as plt
 fig = plt.figure()
 ax = fig.subplots()
 
-cp.draw_diagram(ax)
+cp.draw_tw_wl_diagram(ax)
 
 ax.set_title('Constraint diagram')
 ax.legend()

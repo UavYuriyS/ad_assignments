@@ -39,8 +39,8 @@ class Aerodynamics:
     L_D_max: float
 
     # transport
-    CL_max_to: float = 1.9
-    CL_max_l: float = 2.4
+    CL_max_to: float = 2.5
+    CL_max_l: float = 3.0
 
     dCD0_to: float = 0.015
     dCD0_l: float = 0.085
