@@ -57,7 +57,7 @@ config_big = AircraftConfig(
     ),
     engine=Engine(
         type=EngineType.JET,
-        sfc=0.0000176128,
+        sfc=0.000016,
         thrust=10000
     ),
     W0= 230000,
@@ -83,7 +83,7 @@ config_small = AircraftConfig(
     ),
     engine=Engine(
         type=EngineType.JET,
-        sfc=0.0000176128,
+        sfc=0.000016,
         thrust=10000
     ),
     W0= 230000,
@@ -256,11 +256,8 @@ import matplotlib.pyplot as plt
 
 fig = plt.figure()
 ax = fig.subplots()
-
 cp_big.draw_tw_wl_diagram(ax, linestyle='-')
-
 cp_small.draw_tw_wl_diagram(ax, linestyle='--')
-
 ax.set_title('Constraint diagram')
 ax.legend()
 ax.set_xlabel('W/S')
@@ -269,7 +266,7 @@ ax.set_ylabel('T/W')
 T_to_W = 0.498
 W_L = 5741
 
-plt.show()
+#plt.show()
 S = config_big.W0 * g / W_L
 Tr = T_to_W * config_big.W0 * g
 print(f"Wing area: {S}")
@@ -282,11 +279,8 @@ import matplotlib.pyplot as plt
 
 fig = plt.figure()
 ax = fig.subplots()
-
 cp_big.draw_t_s_diagram(ax, linestyle='-')
-
 cp_small.draw_t_s_diagram(ax, linestyle='--')
-
 ax.set_title('Constraint diagram')
 ax.legend()
 ax.set_xlabel('S')
@@ -309,6 +303,7 @@ max_cruise_cl = 2 * config_big.W0 * g / (rho_cruise * (config_big.cruise_mach * 
 rho = fluids.ATMOSPHERE_1976(0).rho
 cl_max_needed = 1.111 * 2 * W_L / (rho * config_big.stall_speed ** 2)
 
+print("Big")
 print(f"Gas weight: {fuel_weight:.2f} kg, avg cruise weight: {avg_cruise_weight:.2f} kg")
 print(f"Cruise Cl: {cruise_cl:.2f}, max cruise Cl: {max_cruise_cl:.2f} Max Cl needed: {cl_max_needed:.2f}")
 
@@ -322,6 +317,7 @@ max_cruise_cl_small = 2 * config_small.W0 * g / (rho_cruise * (config_small.crui
 rho = fluids.ATMOSPHERE_1976(0).rho
 cl_max_needed_small = 1.111 * 2 * W_L / (rho * config_small.stall_speed ** 2)
 
+print("Small")
 print(f"Gas weight: {fuel_weight_small:.2f} kg, avg cruise weight: {avg_cruise_weight_small:.2f} kg")
 print(f"Cruise Cl: {cruise_cl_small:.2f}, max cruise Cl: {max_cruise_cl_small:.2f} Max Cl needed: {cl_max_needed_small:.2f}")
 
@@ -333,11 +329,12 @@ print(f"Cruise Cl: {cruise_cl_small:.2f}, max cruise Cl: {max_cruise_cl_small:.2
 m_crit = 0.78
 
 quarter_chord_sweep = math.acos(
-    ((1 - (config_big.cruise_mach + 0.16 - (0.1 / 80) ** (1 / 3))) / (1 - m_crit)) ** (10 / 6)
+    ((1 - (config_big.cruise_mach + 0.138 - (0.1 / 80) ** (1 / 3))) / (1 - m_crit)) ** (10 / 6)
 )
 
 #quarter_chord_sweep = 34.5
 math.degrees(quarter_chord_sweep)
+print("Quarter chord sweep ", math.degrees(quarter_chord_sweep))
 # %%
 beta = math.sqrt(1 - config_big.cruise_mach ** 2)
 n =  10.81 / (2 * math.pi / beta)

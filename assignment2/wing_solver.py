@@ -94,7 +94,12 @@ Wing = Wing([
 vtail_volume_coeff = 1.0
 htail_volume_coeff = 0.01
 
-fuselage_length = 28
+fuselage_length = 26
+
+# Rear engines
+CG_location = 0.485
+
+
 
 print("Area:", Wing.area)
 print("MAC:", Wing.get_mac())
