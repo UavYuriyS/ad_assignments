@@ -47,6 +47,8 @@ MISSION_CRUISE_RANGE_SMALL = 3900000
 TAKEOFF_FIELD_LENGTH_SMALL = 1220
 LANDING_FIELD_LENGTH_SMALL = 1220
 
+print(f"Payload small: {PAX_NUMBER_SMALL * WEIGHT_PER_PERSON:.2f} kg")
+print(f"Payload big: {PAX_NUMBER_BIG * WEIGHT_PER_PERSON:.2f} kg")
 
 config_big = AircraftConfig(
     mission=MissionConfig(AircraftTypes.TRANSPORT_JET),
@@ -304,7 +306,7 @@ rho = fluids.ATMOSPHERE_1976(0).rho
 cl_max_needed = 1.111 * 2 * W_L / (rho * config_big.stall_speed ** 2)
 
 print("Big")
-print(f"Gas weight: {fuel_weight:.2f} kg, avg cruise weight: {avg_cruise_weight:.2f} kg")
+print(f"Gas weight: {fuel_weight:.2f} kg, avg cruise weight: {avg_cruise_weight:.2f} kg, fuel weight fraction: {fuel_weight/config_big.W0:.2f}")
 print(f"Cruise Cl: {cruise_cl:.2f}, max cruise Cl: {max_cruise_cl:.2f} Max Cl needed: {cl_max_needed:.2f}")
 
 fuel_weight_small = config_small.W0 * mission_weight_fraction_calc_small.total_fuel_weight_fraction()
@@ -318,7 +320,7 @@ rho = fluids.ATMOSPHERE_1976(0).rho
 cl_max_needed_small = 1.111 * 2 * W_L / (rho * config_small.stall_speed ** 2)
 
 print("Small")
-print(f"Gas weight: {fuel_weight_small:.2f} kg, avg cruise weight: {avg_cruise_weight_small:.2f} kg")
+print(f"Gas weight: {fuel_weight_small:.2f} kg, avg cruise weight: {avg_cruise_weight_small:.2f} kg, fuel weight fraction: {fuel_weight_small/config_small.W0:.2f}")
 print(f"Cruise Cl: {cruise_cl_small:.2f}, max cruise Cl: {max_cruise_cl_small:.2f} Max Cl needed: {cl_max_needed_small:.2f}")
 
 # %% [markdown]

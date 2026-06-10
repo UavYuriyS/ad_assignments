@@ -135,9 +135,10 @@ class Wing:
 
 
 wing = Wing([
-    Segment(root=5, sweep=math.radians(42), length=5.4),
-    Segment(root=2, sweep=math.radians(0), length=6.6),
-    Segment(root=2)
+    Segment(root=4.29, sweep=math.radians(0), length=1),
+    Segment(root=4.29, sweep=math.radians(35), length=2),
+    Segment(root=2.89, sweep=math.radians(1), length=9),
+    Segment(root=1.29)
 ])
 print(wing.area)
 
@@ -147,21 +148,24 @@ wing.draw_wing(axis=ax)
 htail_volume_coeff = 1.0
 vtail_volume_coeff = 0.1
 
-FUSELAGE_LENGTH = 26
+FUSELAGE_LENGTH_BIG = 32
+FUSELAGE_LENGTH_SMALL = 26
+
+FUSELAGE_LENGTH = FUSELAGE_LENGTH_SMALL
 WINGSPAN = 24
 
 # Rear engines
 VTAIL_ARM = 0.5
 HTAIL_ARM = 0.5
 
-VTAIL_TAPER = 0.25
-HTAIL_TAPER = 0.25
+VTAIL_TAPER = 0.60
+HTAIL_TAPER = 0.4
 
-HTAIL_AR = 5
-VTAIL_AR = 5
+HTAIL_AR = 4
+VTAIL_AR = 2
 
-VTAIL_LE_SWEEP = math.radians(30)
-HTAIL_LE_SWEEP = math.radians(30)
+VTAIL_LE_SWEEP = math.radians(35)
+HTAIL_LE_SWEEP = math.radians(35)
 
 vtail_area_wet = vtail_volume_coeff * WINGSPAN * wing.area * 2 / (VTAIL_ARM * FUSELAGE_LENGTH)
 htail_area = htail_volume_coeff * wing.get_mac() * wing.area * 2 / (HTAIL_ARM * FUSELAGE_LENGTH)
@@ -185,11 +189,37 @@ htail = Wing([
     Segment(root=r_htail * HTAIL_TAPER)
 ])
 htail.draw_wing(ref=Point(FUSELAGE_LENGTH * HTAIL_ARM - htail.get_mac_location().x, 0), axis=ax)
-
+print(FUSELAGE_LENGTH*HTAIL_ARM)
 plt.show()
-print("Htail area:", htail.area)
+
+vtail.draw_wing()
+
+print(f"Distance from wing tip to htail tip: {FUSELAGE_LENGTH * HTAIL_ARM - htail.get_mac_location().x}")
+
+print(f"Htail root: {htail.segments[0].root:.2f}, "
+      f"tip: {htail.segments[1].root:.2f}, "
+      f"sweep: {math.degrees(htail.segments[0].sweep):.2f}, "
+      f"span: {htail.segments[0].length:.2f}")
+print(f"Vtail root: {vtail.segments[0].root:.2f}, "
+      f"tip: {vtail.segments[1].root:.2f}, "
+      f"sweep: {math.degrees(vtail.segments[0].sweep):.2f}, "
+      f"span: {vtail.segments[0].length:.2f}")
+
+print(f"Wing segment1 root: {wing.segments[0].root:.2f}, "
+      f"tip: {wing.segments[1].root:.2f}, "
+      f"sweep: {math.degrees(wing.segments[0].sweep):.2f}, "
+      f"length: {wing.segments[0].length:.2f}, \n"
+      f"wing segment2 root: {wing.segments[1].root:.2f}, "
+      f"tip: {wing.segments[2].root:.2f}, "
+      f"sweep: {math.degrees(wing.segments[1].sweep):.2f}, "
+      f"length: {wing.segments[1].length:.2f}, \n"
+      f"wing segment3 root: {wing.segments[2].root:.2f}, "
+      f"tip: {wing.segments[3].root:.2f}, "
+      f"sweep: {math.degrees(wing.segments[2].sweep):.2f}, "
+      f"length: {wing.segments[2].length:.2f}")
+
+
 print("Htail MAC:", htail.get_mac())
-print("Htail AR:", htail.AR)
 print("Area:", wing.area)
 print("MAC:", wing.get_mac())
 print("MAC Location:", wing.get_mac_location())
